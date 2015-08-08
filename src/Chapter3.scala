@@ -1,11 +1,11 @@
-sealed trait List[+A]
-case object Nil extends List[Nothing]
-case class Cons [+A] (head: A, tail: List[A]) extends List[A]
+sealed trait TestList[+A]
+case object TestNil extends TestList[Nothing]
+case class TestCons [+A] (head: A, tail: TestList[A]) extends TestList[A]
 
-object List {
-    def apply[A](as: A*): List[A] =
-        if (as.isEmpty) Nil
-        else Cons(as.head, apply(as.tail: _*))
+object TestList {
+    def apply[A](as: A*): TestList[A] =
+        if (as.isEmpty) TestNil
+        else TestCons(as.head, apply(as.tail: _*))
 }
 
 sealed trait Tree[+A]
@@ -13,74 +13,74 @@ case class Leaf[A](value: A) extends Tree[A]
 case class Branch[A](left: Tree[A], right: Tree[A]) extends Tree[A]
 
 object Chapter3 {
-    def tail[A](l: List[A]): List[A] = 
+    def tail[A](l: TestList[A]): TestList[A] = 
         l match {
-            case Nil => sys.error("tail of empty list")
-            case Cons(_,t) => t
+            case TestNil => sys.error("tail of empty list")
+            case TestCons(_, t) => t
         }
     
-    def setHead[A](l: List[A], newHead: A): List[A] = 
+    def setHead[A](l: TestList[A], newHead: A): TestList[A] = 
         l match {
-            case Nil => Cons(newHead, Nil)
-            case Cons(_, t) => Cons(newHead, t)
+            case TestNil => TestCons(newHead, TestNil)
+            case TestCons(_, t) => TestCons(newHead, t)
         }
     
     @annotation.tailrec
-    def drop[A](l: List[A], itemsToDrop: Int): List[A] =
+    def drop[A](l: TestList[A], itemsToDrop: Int): TestList[A] =
         if (itemsToDrop == 0) l
         else l match {
-            case Nil => Nil
-            case Cons(_, t) => drop(t, itemsToDrop - 1)
+            case TestNil => TestNil
+            case TestCons(_, t) => drop(t, itemsToDrop - 1)
         }
     
     @annotation.tailrec
-    def dropWhile[A](l: List[A])(f: A => Boolean): List[A] =
+    def dropWhile[A](l: TestList[A])(f: A => Boolean): TestList[A] =
         l match {
-            case Nil => Nil
-            case Cons(h, t) =>
+            case TestNil => TestNil
+            case TestCons(h, t) =>
                 if (f(h)) dropWhile(t)(f)
-                else Cons(h, t)
+                else TestCons(h, t)
         }
     
-    def init[A](l: List[A]): List[A] =
+    def init[A](l: TestList[A]): TestList[A] =
         l match {
-            case Nil => sys.error("empty list.")
-            case Cons(_, Nil) => Nil
-            case Cons(h, t) => Cons(h, init(t))
+            case TestNil => sys.error("empty list.")
+            case TestCons(_, TestNil) => TestNil
+            case TestCons(h, t) => TestCons(h, init(t))
         }
     
-    def foldRight[A, B](as: List[A], z: B)(f: (A, B) => B): B =
+    def foldRight[A, B](as: TestList[A], z: B)(f: (A, B) => B): B =
         as match {
-            case Nil => z
-            case Cons(h, t) => f(h, foldRight(t, z)(f))
+            case TestNil => z
+            case TestCons(h, t) => f(h, foldRight(t, z)(f))
         }
     
     @annotation.tailrec
-    def foldLeft[A, B](as: List[A], z: B)(f: (B, A) => B): B =
+    def foldLeft[A, B](as: TestList[A], z: B)(f: (B, A) => B): B =
         as match {
-            case Nil => z
-            case Cons(h, t) => foldLeft(t, f(z, h))(f)
+            case TestNil => z
+            case TestCons(h, t) => foldLeft(t, f(z, h))(f)
         }
     
-    def sum(ints: List[Int]): Int = foldLeft(ints, 0)(_ + _)
+    def sum(ints: TestList[Int]): Int = foldLeft(ints, 0)(_ + _)
     
-    def reverse[A](l: List[A]): List[A] = foldLeft(l, List[A]())((acc, h) => Cons(h, acc))
+    def reverse[A](l: TestList[A]): TestList[A] = foldLeft(l, TestList[A]())((acc, h) => TestCons(h, acc))
     
-    def append[A](l: List[A])(r: List[A]): List[A] = foldRight(l, r)(Cons(_, _))
+    def append[A](l: TestList[A])(r: TestList[A]): TestList[A] = foldRight(l, r)(TestCons(_, _))
     
-    def addOne(ints: List[Int]): List[Int] = foldLeft(ints, List[Int]())((t, h) => Cons(h + 1, t))
+    def addOne(ints: TestList[Int]): TestList[Int] = foldLeft(ints, TestList[Int]())((t, h) => TestCons(h + 1, t))
     
-    def doubleToString(dbls: List[Double]): List[String] =
-        foldRight(dbls, List[String]())((x, xs) => Cons(x.toString(), xs))
+    def doubleToString(dbls: TestList[Double]): TestList[String] =
+        foldRight(dbls, TestList[String]())((x, xs) => TestCons(x.toString(), xs))
         
     // not stack safe
-    def map[A, B](as: List[A])(f: A => B): List[B] =
-        foldRight(as, List[B]())((h, t) => Cons(f(h), t))
+    def map[A, B](as: TestList[A])(f: A => B): TestList[B] =
+        foldRight(as, TestList[B]())((h, t) => TestCons(f(h), t))
         
-    def zipInt(a: List[Int], b: List[Int]): List[Int] = (a, b) match{
-        case (Nil, _) => Nil
-        case (_, Nil) => Nil
-        case (Cons(h1, t1), Cons(h2, t2)) => Cons(h1 + h2, zipInt(t1, t2))
+    def zipInt(a: TestList[Int], b: TestList[Int]): TestList[Int] = (a, b) match {
+        case (TestNil, _) => TestNil
+        case (_, TestNil) => TestNil
+        case (TestCons(h1, t1), TestCons(h2, t2)) => TestCons(h1 + h2, zipInt(t1, t2))
     }
     
     def size[A](t: Tree[A]): Int = t match {
