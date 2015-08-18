@@ -41,6 +41,10 @@ trait Stream[+A] {
 
     def takeWhile_fold(f: A => Boolean): Stream[A] =
         foldRight(empty[A])((a, b) => if (f(a)) cons(a, b) else empty)
+    
+    //  Option[A] is necessary in the first parameter for compiler to behave
+    def headOption_fold: Option[A] =
+        foldRight(None: Option[A])((a, b) => Some(a))
 }
 
 case object Empty extends Stream[Nothing]
