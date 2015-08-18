@@ -45,6 +45,21 @@ trait Stream[+A] {
     //  Option[A] is necessary in the first parameter for compiler to behave
     def headOption_fold: Option[A] =
         foldRight(None: Option[A])((a, b) => Some(a))
+    
+    def map[B](f: A => B): Stream[B] =
+        foldRight(empty[B])((h, t) => cons(f(h), t))
+    
+    def filter(f: A => Boolean): Stream[A] =
+        foldRight(empty[A]: Stream[A])((h, t) =>
+            if (f(h)) cons(h, t)
+            else t
+        )
+        
+    def append[B>:A](s: => Stream[B]): Stream[B] =
+        foldRight(s)((h, t) => cons(h, t))
+        
+    def flatMap[B](f: A => Stream[B]): Stream[B] =
+        foldRight(empty[B])((h, t) => f(h) append t)
 }
 
 case object Empty extends Stream[Nothing]
@@ -63,4 +78,25 @@ object Stream {
         if (as.isEmpty) this.empty
         else cons(as.head, apply(as.tail: _*))
     }
+}
+
+object Chapter5 {
+    def constant[A](a: A): Stream[A] = cons(a, constant(a))
+    
+    // from example code, just references itself.
+    def optimizedConstant[A](a: A): Stream[A] = {
+        lazy val tail: Stream[A] = Cons(() => a, () => tail)
+        tail
+    }
+    
+    def from(n: Int): Stream[Int] =
+        cons(n, from(n + 1))
+        
+    def fib: Stream[Int] = {
+        def fib_h(a: Int, b: Int): Stream[Int] =
+            cons(a, fib_h(b, a + b))
+            
+        fib_h(0, 1)
+    }
+        
 }
