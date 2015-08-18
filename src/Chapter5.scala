@@ -1,4 +1,5 @@
 import Stream._
+import Chapter5._
 
 trait Stream[+A] {
     def headOption: Option[A] = this match {
@@ -21,6 +22,13 @@ trait Stream[+A] {
         case _ => empty
     }
     
+    def takeWithUnfold(n: Int): Stream[A] =
+        unfold((this, n)) {
+            case (Cons(h, t), 1) => Some((h(), (empty, 0)))
+            case (Cons(h, t), n) => Some((h(), (t(), n - 1)))
+            case _ => None
+        }
+    
     @annotation.tailrec
     final def drop(n: Int): Stream[A] = this match {
         case Cons(_, t) if n > 0 => t().drop(n - 1)
@@ -31,6 +39,12 @@ trait Stream[+A] {
         case Cons(h, t) if (p(h())) => cons(h(), t() takeWhile p)
         case _ => empty
     }
+    
+    def takeWhileWithUnfold(p: A => Boolean): Stream[A] =
+        unfold(this) {
+            case Cons(h, t) if (p(h())) => Some((h(), t()))
+            case _ => None
+        }
     
     def foldRight[B](z: => B)(f: (A, => B) => B): B = this match {
         case Cons(h, t) => f(h(), t().foldRight(z)(f))
@@ -49,6 +63,12 @@ trait Stream[+A] {
     def map[B](f: A => B): Stream[B] =
         foldRight(empty[B])((h, t) => cons(f(h), t))
     
+    def mapWithUnfold[B](f: A => B): Stream[B] =
+        unfold(this) {
+            case Cons(h, t) => Some((f(h()), t()))
+            case Empty => None
+        }
+    
     def filter(f: A => Boolean): Stream[A] =
         foldRight(empty[A]: Stream[A])((h, t) =>
             if (f(h)) cons(h, t)
@@ -60,6 +80,13 @@ trait Stream[+A] {
         
     def flatMap[B](f: A => Stream[B]): Stream[B] =
         foldRight(empty[B])((h, t) => f(h) append t)
+
+    def zipWith[B, C](s2: Stream[B])(f: (A, B) => C): Stream[C] =
+        unfold((this, s2)) {
+            case ((Cons(h1, t1), Cons(h2, t2))) =>
+                Some((f(h1(), h2()), (t1(), t2())))
+            case _ => None
+        }
 }
 
 case object Empty extends Stream[Nothing]
@@ -104,4 +131,14 @@ object Chapter5 {
             case Some((a, s)) => cons(a, unfold(s)(f))
             case None => empty
         }
+    
+    val fib_unfold = unfold((0, 1)) {
+        case (a, b) => Some((a, (a, a + b)))
+    }
+    
+    def from_unfold(n: Int): Stream[Int] = unfold(n)(a => Some((a, a + 1)))
+    
+    def constant_unfold[A](a: A): Stream[A] = unfold(a)(_ => Some((a, a)))
+    
+    val ones_unfold = unfold(1)(_ => Some((1, 1)))
 }
