@@ -17,4 +17,9 @@ object Chapter6 {
         if (nextInt == Int.MinValue) (0, newRng)
         else (Math.abs(nextInt), newRng)
     }
+    
+    def double(rng: RNG): (Double, RNG) = {
+        val (nextInt, newRng) = nonNegativeInt(rng)
+        (1 / (nextInt + 1) toDouble, newRng)
+    }
 }
