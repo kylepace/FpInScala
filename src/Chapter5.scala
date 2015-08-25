@@ -87,6 +87,23 @@ trait Stream[+A] {
                 Some((f(h1(), h2()), (t1(), t2())))
             case _ => None
         }
+    
+    def zipAll[B](s2: Stream[B]): Stream[(Option[A], Option[B])] =
+        unfold((this, s2)) {
+            case ((Cons(h1, t1), Cons(h2, t2))) =>
+                Some((Some(h1()), Some(h2())), (t1(), t2()))
+            case ((Cons(h1, t1), Empty)) =>
+                Some((Some(h1()), None), (t1(), empty))
+            case (Empty, Cons(h2, t2)) =>
+                Some((None, Some(h2())), (empty, t2()))
+            case _ => None
+        }
+    
+    def tails: Stream[Stream[A]] =
+        unfold(this) {
+            case Cons(h, t) => Some((cons(h(), t()), t()))
+            case _ => None
+        }
 }
 
 case object Empty extends Stream[Nothing]
@@ -141,4 +158,6 @@ object Chapter5 {
     def constant_unfold[A](a: A): Stream[A] = unfold(a)(_ => Some((a, a)))
     
     val ones_unfold = unfold(1)(_ => Some((1, 1)))
+    
+    def printStream[A](s: Stream[A]) = s map(a => println(a))
 }
