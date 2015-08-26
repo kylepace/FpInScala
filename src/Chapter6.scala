@@ -12,6 +12,17 @@ case class SimpleRNG(seed: Long) extends RNG {
 }
 
 object Chapter6 {
+    type Rand[+A] = RNG => (A, RNG)
+    
+    def map[A, B](s: Rand[A])(f: A => B): Rand[B] =
+        rng => {
+            val (a, rng2) = s(rng)
+            (f(a), rng2)
+        }
+    
+    def doubleWithMap(rng: RNG): Rand[Double] =
+        map(nonNegativeInt)(i => (1 / (i + 1) toDouble))
+    
     def nonNegativeInt(rng: RNG): (Int, RNG) = {
         val (nextInt, newRng) = rng.nextInt
         if (nextInt == Int.MinValue) (0, newRng)
