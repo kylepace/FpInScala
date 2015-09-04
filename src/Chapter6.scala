@@ -29,6 +29,15 @@ case class State[S, +A] (run: S => (A, S)) {
 
 object State {
     def unit[S, A](a: A): State[S, A] = State(s => (a, s))
+    
+    def set[S](s: S): State[S, Unit] = State(_ => ((), s))
+    
+    def get[S]: State[S, S] = State(s => (s, s))
+    
+    def modify[S](f: S => S): State[S, Unit] = for {
+        s <- get
+        _ <- set(f(s))
+    } yield ()
 }
 
 object Chapter6 {
@@ -108,3 +117,10 @@ object Chapter6 {
         ints_h(count, rng, List())
     }
 }
+
+sealed trait Input
+case object Coin extends Input
+case object Turn extends Input
+
+case class Machine(locked: Boolean, candles: Int, coins: Int)
+
