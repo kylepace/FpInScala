@@ -11,6 +11,8 @@ sealed trait Option[+A] {
         case Some(b) => b
     }
     
+    def isDefined = true
+    
     def flatMap[B](f: A => Option[B]): Option[B] = map(f) getOrElse None
     
     def orElse[B >: A](ob: => Option[B]): Option[B] = this map (Some(_)) getOrElse ob
