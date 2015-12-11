@@ -1,9 +1,12 @@
 // Answer 7.1
 // def map2[A, B, C](a: Par[A], b: Par[B])(f: (A, B) => C): Par[C]
 import java.util.concurrent._
+import java.util.concurrent.atomic._
 
 object Par {
     type Par[A] = ExecutorService => Future[A]
+    
+    def run[A](s: ExecutorService)(a: Par[A]): Future[A] = a(s)
     
     def unit[A](a: A): Par[A] = (es: ExecutorService) => UnitFuture(a)
     
@@ -51,6 +54,26 @@ object Par {
     def lazyUnit[A](a: => A): Par[A] = fork(unit(a))
         
     def asyncF[A, B](f: A => B): A => Par[B] = a => lazyUnit(f(a))
+    
+    def sequence[A](as: List[Par[A]]): Par[List[A]] =
+        as.foldRight[Par[List[A]]](unit(List()))((h, t) => map2(h, t)(_ :: _))
+    
+    def map[A, B](pa: Par[A])(f: A => B): Par[B] =
+        map2(pa, unit(()))((a, _) => f(a))
+        
+    def parFilter[A](as: List[A])(f: A => Boolean): Par[List[A]] = {
+        val pars: List[Par[List[A]]] =
+            as map(asyncF((a: A) => if (f(a)) List(a) else List()))
+        map(sequence(pars))(_.flatten)
+    }
+    
+    def choiceN[A](n: Par[Int])(choices: List[Par[A]]): Par[A] = es => {
+        val index = run(es)(n).get
+        choices(index)(es)
+    }
+    
+    def choice[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
+        choiceN(map(cond)(a => if (a) 0 else 1))(t :: List(f))
 }
 
 object Chapter7 {
