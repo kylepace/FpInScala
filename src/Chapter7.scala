@@ -74,6 +74,19 @@ object Par {
     
     def choice[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
         choiceN(map(cond)(a => if (a) 0 else 1))(t :: List(f))
+        
+    def chooser[A, B](pa: Par[A])(choices: A => Par[B]): Par[B] = es => {
+        run(es)(choices(run(es)(pa).get))
+    }
+    
+    def choiceViaChooser[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] = chooser(cond) { a => if (a) t else f }
+    
+    def choiceNViaChooser[A](n: Par[Int])(choices: List[Par[A]]): Par[A] = chooser(n) { a => choices(a) }
+    
+    def join[A](a: Par[Par[A]]): Par[A] = es => {
+        val unwrap = run(es)(a).get
+        run(es)(unwrap)
+    }
 }
 
 object Chapter7 {
