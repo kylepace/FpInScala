@@ -12,7 +12,13 @@ trait Monad[F[_]] {
 	    lma.foldRight(unit(List[A]()))((h, t) => map2(h, t)(_ :: _)) 	
 	
 	def traverse[A, B](la: List[A])(f: A => F[B]): F[List[B]] =
-	    la.foldRight(unit(List[B]()))((h, t) => map2(f(h), t)(_ :: _))    
+	    la.foldRight(unit(List[B]()))((h, t) => map2(f(h), t)(_ :: _))
+	    
+	def replicateM[A](n: Int, ma: F[A]): F[List[A]] = {
+	    if (n <= 0) unit(List[A]())
+	    else
+	        map2(ma, replicateM(n - 1, ma))(_ :: _)
+	}
 }
 
 object Chapter11 {
