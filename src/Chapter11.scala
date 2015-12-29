@@ -1,9 +1,18 @@
 trait Monad[F[_]] {
-    def unit[A](a: => A): F[A]
+	def unit[A](a: => A): F[A]
     def flatMap[A, B](ma: F[A])(f: A => F[B]): F[B]
     
     def map[A, B](ma: F[A])(f: A => B): F[B] =
         flatMap(ma)(a => unit(f(a)))
+     
+    def map2[A, B, C](ma: F[A], mb: F[B])(f: (A, B) => C): F[C] =
+        flatMap(ma)(a => map(mb)(b => f(a, b)))
+        
+    def sequence[A](lma: List[F[A]]): F[List[A]] =
+	    lma.foldRight(unit(List[A]()))((h, t) => map2(h, t)(_ :: _)) 	
+	
+	def traverse[A, B](la: List[A])(f: A => F[B]): F[List[B]] =
+	    la.foldRight(unit(List[B]()))((h, t) => map2(f(h), t)(_ :: _))    
 }
 
 object Chapter11 {
