@@ -1,3 +1,8 @@
+case class Id[A](value: A) {
+    def flatMap[B](f: A => Id[B]): Id[B] = f(value)
+    def map[B](f: A => B): Id[B] = Id(f(value))
+}
+
 trait Monad[F[_]] {
 	def unit[A](a: => A): F[A]
     def flatMap[A, B](ma: F[A])(f: A => F[B]): F[B]
@@ -18,6 +23,23 @@ trait Monad[F[_]] {
 	    if (n <= 0) unit(List[A]())
 	    else
 	        map2(ma, replicateM(n - 1, ma))(_ :: _)
+	}
+	
+	def filterM[A](ms: List[A])(f: A => F[Boolean]): F[List[A]] = ms match {
+	    case Nil => unit(Nil)
+	    case h :: t => flatMap(f(h))(b =>
+	        if (!b) filterM(t)(f)
+	        else map(filterM(t)(f))(h :: _)
+	    )
+	}
+	
+	def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] = a => {
+	    flatMap(f(a))(g)
+	}
+	
+	def flatMapByCompose[A, B](ma: F[A])(f: A => F[B]): F[B] = {
+	    val unwrapFunc = (_:Unit) => ma
+	    compose(unwrapFunc, f)(())
 	}
 }
 
@@ -40,5 +62,10 @@ object Chapter11 {
     val listMonad = new Monad[List] {
         def unit[A](a: => A): List[A] = List(a)
         def flatMap[A, B](ma: List[A])(f: A => List[B]) = ma flatMap f
+    }
+    
+    val idMonad = new Monad[Id] {
+        def unit[A](a: => A): Id[A] = Id(a)
+        def flatMap[A, B](ma: Id[A])(f: A => Id[B]): Id[B] = ma flatMap f
     }
 }
