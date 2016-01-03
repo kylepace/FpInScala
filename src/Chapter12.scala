@@ -45,6 +45,16 @@ trait Applicative[F[_]] {
               (self.apply(fs._1)(p._1), G.apply(fs._2)(p._2))
         }
     }
+    
+    def compose[G[_]](G: Applicative[G]): Applicative[({type f[x] = F[G[x]]})#f] = {
+        val self = this
+        new Applicative[({type f[x] = F[G[x]]})#f] {
+            def unit[A](a: => A): F[G[A]] = self.unit(G.unit(a))
+            override def map2[A, B, C](fa: F[G[A]], fb: F[G[B]])(f: (A, B) => C): F[G[C]] = {
+                self.map2(fa, fb)(G.map2(_, _)(f))
+            }
+        }
+    }
 }
 
 sealed trait Validation[+E, +A]
