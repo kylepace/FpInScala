@@ -1,5 +1,6 @@
 trait Applicative[F[_]] {
-    def map2[A, B, C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C]
+    def map2[A, B, C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C] =
+        apply(map(fa)(f.curried))(fb)
     def unit[A](a: => A): F[A]
     
     def map[A, B](fa: F[A])(f: A => B): F[B] = 
@@ -35,6 +36,15 @@ trait Applicative[F[_]] {
     def map4[A, B, C, D, E](fa: F[A], fb: F[B], fc: F[C], fd: F[D])(f: (A, B, C, D) => E): F[E] = {
         apply(apply(apply(apply(unit(f.curried))(fa))(fb))(fc))(fd)
     }
+    
+    def product[G[_]](G: Applicative[G]): Applicative[({type f[x] = (F[x], G[x])})#f] = {
+        val self = this
+        new Applicative[({type f[x] = (F[x], G[x])})#f] {
+            def unit[A](a: => A) = (self.unit(a), G.unit(a))
+            override def apply[A,B](fs: (F[A => B], G[A => B]))(p: (F[A], G[A])) =
+              (self.apply(fs._1)(p._1), G.apply(fs._2)(p._2))
+        }
+    }
 }
 
 sealed trait Validation[+E, +A]
@@ -57,7 +67,7 @@ object Chapter12 {
     
     def validationApplicative[E]: Applicative[({type f[x] = Validation[E,x]})#f] = new Applicative[({type f[x] = Validation[E,x]})#f] {
         def unit[A](a: => A): Validation[E, A] = Success(a)
-        def map2[A, B, C](fa: Validation[E, A], fb: Validation[E, B])(f: (A, B) => C): Validation[E, C] = (fa, fb) match {
+        override def map2[A, B, C](fa: Validation[E, A], fb: Validation[E, B])(f: (A, B) => C): Validation[E, C] = (fa, fb) match {
             case (Success(a), Success(b)) => Success(f(a, b))
             case (Failure(h1, t1), Failure(h2, t2)) => Failure(h1, t1 ++ Vector(h2) ++ t2)
             case (Success(_), Failure(h1, t1)) => Failure(h1, t1)
