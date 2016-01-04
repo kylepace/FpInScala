@@ -55,7 +55,35 @@ trait Applicative[F[_]] {
             }
         }
     }
+    
+    def sequenceMap[K, V](ofa: Map[K, F[V]]): F[Map[K, V]] = {
+        (ofa foldLeft unit(Map.empty[K, V])) { case (acc, (k, fv)) =>
+            map2(acc, fv)((m, v) => m + (k -> v))
+        }
+    }
 }
+
+trait Functor[F[_]] {
+  def map[A,B](fa: F[A])(f: A => B): F[B]
+
+  def distribute[A,B](fab: F[(A, B)]): (F[A], F[B]) =
+    (map(fab)(_._1), map(fab)(_._2))
+
+  def codistribute[A,B](e: Either[F[A], F[B]]): F[Either[A, B]] = e match {
+    case Left(fa) => map(fa)(Left(_))
+    case Right(fb) => map(fb)(Right(_))
+  }
+}
+
+trait Traverse[F[_]] extends Functor[F] {
+    def traverse[G[_]: Applicative, A, B](fa: F[A])(f: A => G[B]): G[F[B]] =
+        sequence(map(fa)(f))
+        
+    def sequence[G[_]: Applicative, A](fga: F[G[A]]): G[F[A]] =
+        traverse(fga)(ga => ga)
+}
+
+case class Tree[+A](head: A, tail: List[Tree[A]])
 
 sealed trait Validation[+E, +A]
 
